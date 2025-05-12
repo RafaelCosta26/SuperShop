@@ -15,11 +15,15 @@ namespace SuperShop.Controllers
     {
         private readonly IProductsRepository _productrepository;
         private readonly IUserHelper _userHelper;
+        private readonly IImageHelper _imageHelper;
+        private readonly IConverterHelper _converterHelper;
 
-        public ProductsController(IProductsRepository repository, IUserHelper userHelper)
+        public ProductsController(IProductsRepository repository, IUserHelper userHelper, IImageHelper imageHelper, IConverterHelper converterHelper)
         {
             _productrepository = repository;
             _userHelper = userHelper;
+            _imageHelper = imageHelper;
+            _converterHelper = converterHelper;
         }
 
         // GET: Products
@@ -61,25 +65,16 @@ namespace SuperShop.Controllers
             if (ModelState.IsValid)
             {
 
-                var guid = Guid.NewGuid().ToString();
-                var file = $"{guid}.jpg";
-
                 var path = string.Empty;
+
                 //TODO: o caminho nao esta a funcionar 
-                if(model.ImageFile != null && model.ImageFile.Length > 0)
+                if (model.ImageFile != null && model.ImageFile.Length > 0)
                 {
-                    path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\Images\\Products", file);
-
-                    using (var stream = new FileStream(path, FileMode.Create))
-                    {
-                        await model.ImageFile.CopyToAsync(stream);
-                    }
-
-                    path = $"~/Images/Products/{file}";
-
+                    path = await _imageHelper.UploadImageAsync(model.ImageFile, "Products");
                 }
 
-                var product = this.ToProduct(model, path);
+                //var product = this.ToProduct(model, path);
+                var product = _converterHelper.ToProduct(model, path, true);
 
                 //TODO : Modificar para o user que tiver logado
                 product.User = await _userHelper.GeTUserByEmailAsync("rafaalexandrecosta26@gmail.com");
@@ -89,21 +84,21 @@ namespace SuperShop.Controllers
             return View(model);
         }
 
-        private Product ToProduct(ProductViewModel model, string path)
-        {
-            return new Product
-            {
-                Id = model.Id,
-                ImageUrl = path,
-                Name = model.Name,
-                IsAvailable = model.IsAvailable,
-                LastPurchase = model.LastPurchase,
-                LastSale = model.LastSale,
-                Price = model.Price,
-                Stock = model.Stock,
-                User = model.User
-            };
-        }
+        //private Product ToProduct(ProductViewModel model, string path)
+        //{
+        //    return new Product
+        //    {
+        //        Id = model.Id,
+        //        ImageUrl = path,
+        //        Name = model.Name,
+        //        IsAvailable = model.IsAvailable,
+        //        LastPurchase = model.LastPurchase,
+        //        LastSale = model.LastSale,
+        //        Price = model.Price,
+        //        Stock = model.Stock,
+        //        User = model.User
+        //    };
+        //}
         
 
         // GET: Products/Edit/5
@@ -120,25 +115,25 @@ namespace SuperShop.Controllers
                 return NotFound();
             }
 
-            var model = this.ToProductViewModel(product);
+            var model = _converterHelper.ToProductViewModel(product);
             return View(model);
         }
 
-        private ProductViewModel ToProductViewModel(Product product)
-        {
-            return new ProductViewModel
-            {
-                Id = product.Id,
-                ImageUrl = product.ImageUrl,
-                IsAvailable = product.IsAvailable,
-                LastPurchase= product.LastPurchase,
-                LastSale= product.LastSale,
-                Price = product.Price,
-                Stock = product.Stock,
-                User = product.User,
-                Name = product.Name,
-            };
-        }
+        //private ProductViewModel ToProductViewModel(Product product)
+        //{
+        //    return new ProductViewModel
+        //    {
+        //        Id = product.Id,
+        //        ImageUrl = product.ImageUrl,
+        //        IsAvailable = product.IsAvailable,
+        //        LastPurchase= product.LastPurchase,
+        //        LastSale= product.LastSale,
+        //        Price = product.Price,
+        //        Stock = product.Stock,
+        //        User = product.User,
+        //        Name = product.Name,
+        //    };
+        //}
 
         // POST: Products/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
@@ -157,21 +152,10 @@ namespace SuperShop.Controllers
 
                     if(model.ImageFile != null && model.ImageFile.Length > 0)
                     {
-                        var guid = Guid.NewGuid().ToString();
-                        var file = $"{guid}.jpg";
-
-                        path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\Images\\Products", file);
-
-                        using (var stream = new FileStream(path, FileMode.Create))
-                        {
-                            await model.ImageFile.CopyToAsync(stream);
-                        }
-
-                        path = $"~/Imagens/Products/{file}";
-
+                        path = await _imageHelper.UploadImageAsync(model.ImageFile,"Products");
                     }
 
-                    var product = this.ToProduct(model, path);
+                    var product = _converterHelper.ToProduct(model, path, false);
 
                     //TODO : Modificar para o user que tiver logado
                     product.User = await _userHelper.GeTUserByEmailAsync("rafaalexandrecosta26@gmail.com");
